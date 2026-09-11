@@ -6,36 +6,37 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Détourage & Calcul de Ratio d'Étiquette</title>
 <style>
-  body { font-family: Arial, Helvetica, sans-serif; background: #f4f5fa; margin: 0; padding: 20px; color: #222; }
-  h1 { font-size: 20px; color: #2649B2; margin-bottom: 4px; }
-  p.subtitle { color: #555; margin-top: 0; font-size: 14px; }
+  body { font-family: Arial, Helvetica, sans-serif; background: #f4f5fa; margin: 0; padding: 20px; color: #222; font-size: 16px; }
+  h1 { font-size: 24px; color: #2649B2; margin-bottom: 4px; }
+  p.subtitle { color: #555; margin-top: 0; font-size: 16px; }
   .container { display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start; }
   .panel { background: white; border-radius: 10px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
   .canvas-panel { flex: 2; min-width: 320px; }
   .info-panel { flex: 1; min-width: 260px; }
   #canvasWrapper { overflow: auto; border: 1px dashed #ccc; border-radius: 8px; max-height: 70vh; background: #fafafa; }
   canvas { display: block; cursor: crosshair; }
-  button { background: #2649B2; color: white; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; margin: 4px 4px 4px 0; }
+  button { background: #2649B2; color: white; border: none; padding: 10px 16px; border-radius: 6px; cursor: pointer; font-size: 15px; margin: 4px 4px 4px 0; }
   button.secondary { background: #8E7DE3; }
   button.warn { background: #D4D9F0; color: #2649B2; }
   button:hover { opacity: 0.9; }
   button.active { outline: 3px solid #9D5CE6; }
-  label { display: block; font-size: 13px; margin-top: 10px; margin-bottom: 4px; font-weight: bold; color: #2649B2; }
-  input[type="file"] { width: 100%; padding: 6px; border-radius: 6px; border: 1px solid #ccc; box-sizing: border-box; font-size: 13px; }
-  .result-box { background: #f0f2fc; border-radius: 8px; padding: 12px; margin-top: 12px; font-size: 14px; }
+  label { display: block; font-size: 15px; margin-top: 10px; margin-bottom: 4px; font-weight: bold; color: #2649B2; }
+  input[type="file"] { width: 100%; padding: 6px; border-radius: 6px; border: 1px solid #ccc; box-sizing: border-box; font-size: 15px; }
+  .result-box { background: #f0f2fc; border-radius: 8px; padding: 14px; margin-top: 12px; font-size: 17px; }
   .result-box div { margin-bottom: 6px; }
-  .result-box strong { color: #2649B2; }
-  .step { font-size: 13px; line-height: 1.5; margin-bottom: 10px; }
+  .result-box strong { color: #2649B2; font-size: 20px; }
+  .step { font-size: 15px; line-height: 1.6; margin-bottom: 10px; }
   .step b { color: #2649B2; }
   hr { border: none; border-top: 1px solid #eee; margin: 14px 0; }
-  .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; margin-left: 6px; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; margin-left: 6px; }
   .badge.product { background: #4A74F3; color: white; }
   .badge.label { background: #9D5CE6; color: white; }
+  .info-rule-box { background: #222; border: 3px solid #000; border-radius: 10px; padding: 16px; margin-top: 16px; font-size: 18px; font-weight: bold; color: #7a5c00; text-align: center; }
 </style>
 </head>
 <body>
 
-<h1> Détourage & Calcul de Ratio d'Étiquette</h1>
+<h1>Détourage & Calcul de Ratio d'Étiquette</h1>
 <p class="subtitle">Chargez une photo, détourez le produit, puis l'étiquette, obtenez le ratio de couverture.</p>
 
 <div class="container">
@@ -45,10 +46,10 @@
     <input type="file" id="imageInput" accept="image/*">
 
     <div style="margin-top:10px;">
-      <button id="modeProductBtn"> Détourer le produit</button>
-      <button id="modeLabelBtn" class="secondary"> Détourer l'étiquette</button>
-      <button id="undoBtn" class="warn"> Annuler point</button>
-      <button id="clearBtn" class="warn"> Tout effacer</button>
+      <button id="modeProductBtn">Détourer le produit</button>
+      <button id="modeLabelBtn" class="secondary">Détourer l'étiquette</button>
+      <button id="undoBtn" class="warn">Annuler point</button>
+      <button id="clearBtn" class="warn">Tout effacer</button>
     </div>
 
     <div id="canvasWrapper" style="margin-top:12px;">
@@ -63,12 +64,12 @@
     <hr>
 
     <div class="result-box" id="resultBox">
-      <div>Surface produit : <strong id="areaProduct">–</strong></div>
-      <div>Surface étiquette : <strong id="areaLabel">–</strong></div>
       <div>Ratio étiquette / produit : <strong id="ratio">–</strong></div>
     </div>
-    <p style="font-size:11px;color:#777;margin-top:10px;">
-    </p>
+
+    <div class="info-rule-box">
+      ℹ Pour info, l'étiquette doit couvrir moins de 50% du packaging
+    </div>
   </div>
 
 </div>
@@ -210,9 +211,6 @@ function polygonArea(points) {
 function updateResults() {
   const areaProductPx = (productClosed && productPoints.length >= 3) ? polygonArea(productPoints) : null;
   const areaLabelPx = (labelClosed && labelPoints.length >= 3) ? polygonArea(labelPoints) : null;
-
-  document.getElementById('areaProduct').textContent = areaProductPx ? areaProductPx.toFixed(0) + ' px²' : '–';
-  document.getElementById('areaLabel').textContent = areaLabelPx ? areaLabelPx.toFixed(0) + ' px²' : '–';
 
   if (areaProductPx && areaLabelPx) {
     const ratio = (areaLabelPx / areaProductPx) * 100;
