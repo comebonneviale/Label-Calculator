@@ -193,8 +193,8 @@ function drawPolygon(points, closed, strokeColor, fillColor) {
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   if (imgLoaded) ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-  drawPolygon(productPoints, productClosed, '#4A74F3', 'rgba(74,116,243,0.20)');
-  drawPolygon(labelPoints, labelClosed, '#9D5CE6', 'rgba(157,92,230,0.35)');
+  drawPolygon(productPoints, productClosed, '#4A74F3', 'rgba(74,116,243,0.30)');
+  drawPolygon(labelPoints, labelClosed, '#2ecc71', 'rgba(46,204,113,0.40)');
 }
 
 function polygonArea(points) {
