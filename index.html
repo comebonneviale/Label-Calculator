@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Détourage & Calcul de Ratio d'Étiquette</title>
 <style>
-  body { font-family: Arial, Helvetica, sans-serif; background: #f4f5fa; margin: 0; padding: 20px; color: #222; font-size: 16px; }
+  body { font-family: Arial, Helvetica, sans-serif; background: #f4f5fa; margin: 0; padding: 90px 20px 20px 20px; color: #222; font-size: 16px; position: relative; }
   h1 { font-size: 24px; color: #2649B2; margin-bottom: 4px; }
   p.subtitle { color: #555; margin-top: 0; font-size: 16px; }
   .container { display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start; }
@@ -24,17 +24,29 @@
   input[type="file"] { width: 100%; padding: 6px; border-radius: 6px; border: 1px solid #ccc; box-sizing: border-box; font-size: 15px; }
   .result-box { background: #f0f2fc; border-radius: 8px; padding: 14px; margin-top: 12px; font-size: 17px; }
   .result-box div { margin-bottom: 6px; }
-  .result-box strong { color: #2649B2; font-size: 20px; }
-  .step { font-size: 15px; line-height: 1.6; margin-bottom: 10px; }
+  .result-box strong { color: #2649B2; font-size: 19px; }
+  .step { font-size: 15px; line-height: 1.5; margin-bottom: 10px; }
   .step b { color: #2649B2; }
   hr { border: none; border-top: 1px solid #eee; margin: 14px 0; }
   .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; margin-left: 6px; }
   .badge.product { background: #4A74F3; color: white; }
   .badge.label { background: #9D5CE6; color: white; }
-  .info-rule-box { background: white ; border: 3px solid #000; border-radius: 10px; padding: 16px; margin-top: 16px; font-size: 18px; font-weight: bold; color: #000; text-align: center; }
+  .info-rule {
+    margin-top: 16px;
+    padding: 16px;
+    border: 2px solid #2649B2;
+    border-radius: 10px;
+    background: #eef1fc;
+    font-size: 18px;
+    font-weight: bold;
+    color: #2649B2;
+    text-align: center;
+  }
 </style>
 </head>
 <body>
+
+<img src="logo.png" alt="Logo" style="position: absolute; top: 20px; right: 20px; height: 50px;">
 
 <h1>Détourage & Calcul de Ratio d'Étiquette</h1>
 <p class="subtitle">Chargez une photo, détourez le produit, puis l'étiquette, obtenez le ratio de couverture.</p>
@@ -67,8 +79,8 @@
       <div>Ratio étiquette / produit : <strong id="ratio">–</strong></div>
     </div>
 
-    <div class="info-rule-box">
-      ℹ Pour info, l'étiquette doit couvrir moins de 50% du packaging
+    <div class="info-rule">
+      Pour info, l'étiquette doit couvrir moins de 50% du packaging
     </div>
   </div>
 
@@ -86,7 +98,7 @@ const clearBtn = document.getElementById('clearBtn');
 let img = new Image();
 let imgLoaded = false;
 
-let mode = 'product'; // 'product' or 'label'
+let mode = 'product';
 let productPoints = [];
 let labelPoints = [];
 let productClosed = false;
@@ -102,7 +114,7 @@ setMode('product');
 imageInput.addEventListener('change', (e) => {
   const file = e.target.files[0];
   if (!file) return;
-  const reader = new FileReader(); // lecture 100% locale, aucun envoi réseau
+  const reader = new FileReader();
   reader.onload = (ev) => {
     img.onload = () => {
       const maxWidth = 800;
