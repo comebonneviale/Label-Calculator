@@ -4,103 +4,39 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Détourage & Calcul de Surface d'Étiquette</title>
+<title>Détourage & Calcul de Ratio d'Étiquette</title>
 <style>
-  body {
-    font-family: Arial, Helvetica, sans-serif;
-    background: #f4f5fa;
-    margin: 0;
-    padding: 20px;
-    color: #222;
-  }
-  h1 {
-    font-size: 20px;
-    color: #2649B2;
-    margin-bottom: 4px;
-  }
-  p.subtitle {
-    color: #555;
-    margin-top: 0;
-    font-size: 14px;
-  }
-  .container {
-    display: flex;
-    gap: 20px;
-    flex-wrap: wrap;
-    align-items: flex-start;
-  }
-  .panel {
-    background: white;
-    border-radius: 10px;
-    padding: 16px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  }
-  .canvas-panel {
-    flex: 2;
-    min-width: 320px;
-  }
-  .info-panel {
-    flex: 1;
-    min-width: 260px;
-  }
-  #canvasWrapper {
-    overflow: auto;
-    border: 1px dashed #ccc;
-    border-radius: 8px;
-    max-height: 70vh;
-    height: 400px;
-    background: #fafafa;
-  }
-  button {
-    background: #2649B2;
-    color: white;
-    border: none;
-    padding: 8px 14px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 13px;
-    margin: 4px 4px 4px 0;
-  }
+  body { font-family: Arial, Helvetica, sans-serif; background: #f4f5fa; margin: 0; padding: 20px; color: #222; }
+  h1 { font-size: 20px; color: #2649B2; margin-bottom: 4px; }
+  p.subtitle { color: #555; margin-top: 0; font-size: 14px; }
+  .container { display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start; }
+  .panel { background: white; border-radius: 10px; padding: 16px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+  .canvas-panel { flex: 2; min-width: 320px; }
+  .info-panel { flex: 1; min-width: 260px; }
+  #canvasWrapper { overflow: auto; border: 1px dashed #ccc; border-radius: 8px; max-height: 70vh; background: #fafafa; }
+  canvas { display: block; cursor: crosshair; }
+  button { background: #2649B2; color: white; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; margin: 4px 4px 4px 0; }
   button.secondary { background: #8E7DE3; }
   button.warn { background: #D4D9F0; color: #2649B2; }
-  label {
-    display: block;
-    font-size: 13px;
-    margin-top: 10px;
-    margin-bottom: 4px;
-    font-weight: bold;
-    color: #2649B2;
-  }
-  input[type="number"], input[type="file"] {
-    width: 100%;
-    padding: 6px;
-    border-radius: 6px;
-    border: 1px solid #ccc;
-    box-sizing: border-box;
-    font-size: 13px;
-  }
-  .result-box {
-    background: #f0f2fc;
-    border-radius: 8px;
-    padding: 12px;
-    margin-top: 12px;
-    font-size: 14px;
-  }
+  button:hover { opacity: 0.9; }
+  button.active { outline: 3px solid #9D5CE6; }
+  label { display: block; font-size: 13px; margin-top: 10px; margin-bottom: 4px; font-weight: bold; color: #2649B2; }
+  input[type="file"] { width: 100%; padding: 6px; border-radius: 6px; border: 1px solid #ccc; box-sizing: border-box; font-size: 13px; }
+  .result-box { background: #f0f2fc; border-radius: 8px; padding: 12px; margin-top: 12px; font-size: 14px; }
   .result-box div { margin-bottom: 6px; }
   .result-box strong { color: #2649B2; }
-  .step {
-    font-size: 13px;
-    line-height: 1.5;
-    margin-bottom: 10px;
-  }
+  .step { font-size: 13px; line-height: 1.5; margin-bottom: 10px; }
   .step b { color: #2649B2; }
   hr { border: none; border-top: 1px solid #eee; margin: 14px 0; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; margin-left: 6px; }
+  .badge.product { background: #4A74F3; color: white; }
+  .badge.label { background: #9D5CE6; color: white; }
 </style>
 </head>
 <body>
 
-<h1>🏷 Détourage & Calcul de Surface d'Étiquette</h1>
-<p class="subtitle">Chargez une photo, tracez le contour de l'étiquette, calibrez l'échelle, obtenez la surface réelle.</p>
+<h1>🏷 Détourage & Calcul de Ratio d'Étiquette</h1>
+<p class="subtitle">Chargez une photo, détourez le produit, puis l'étiquette, obtenez le ratio de couverture.</p>
 
 <div class="container">
 
@@ -109,37 +45,184 @@
     <input type="file" id="imageInput" accept="image/*">
 
     <div style="margin-top:10px;">
-      <button>✏ Tracer l'étiquette</button>
-      <button class="secondary">📏 Tracer la calibration</button>
-      <button class="warn">↩ Annuler point</button>
-      <button class="warn">🗑 Tout effacer</button>
+      <button id="modeProductBtn">📦 Détourer le produit</button>
+      <button id="modeLabelBtn" class="secondary">🏷 Détourer l'étiquette</button>
+      <button id="undoBtn" class="warn">↩ Annuler point</button>
+      <button id="clearBtn" class="warn">🗑 Tout effacer</button>
     </div>
 
-    <div id="canvasWrapper" style="margin-top:12px;"></div>
+    <div id="canvasWrapper" style="margin-top:12px;">
+      <canvas id="canvas"></canvas>
+    </div>
   </div>
 
   <div class="panel info-panel">
-    <div class="step"><b>Étape 1</b> — Tracez le contour de l'étiquette sur la photo.</div>
-    <div class="step"><b>Étape 2</b> — Tracez une ligne de calibration sur un élément de longueur connue.</div>
-    <div class="step"><b>Étape 3</b> — Indiquez cette longueur réelle ci-dessous en cm.</div>
-
-    <label for="realLength">Longueur réelle de la ligne de calibration (cm)</label>
-    <input type="number" id="realLength" placeholder="ex: 6.5" step="0.01" min="0">
+    <div class="step"><b>Étape 1</b> — Cliquez sur "Détourer le produit" <span class="badge product">produit</span>, puis tracez le contour du produit entier point par point. Cliquez près du premier point pour refermer.</div>
+    <div class="step"><b>Étape 2</b> — Cliquez sur "Détourer l'étiquette" <span class="badge label">étiquette</span>, puis tracez le contour de l'étiquette de la même façon.</div>
 
     <hr>
 
-    <div class="result-box">
-      <div>Points du contour : <strong>0</strong></div>
-      <div>Aire en pixels² : <strong>–</strong></div>
-      <div>Échelle : <strong>non calibrée</strong></div>
-      <div>Aire réelle estimée : <strong>–</strong></div>
+    <div class="result-box" id="resultBox">
+      <div>Surface produit : <strong id="areaProduct">–</strong></div>
+      <div>Surface étiquette : <strong id="areaLabel">–</strong></div>
+      <div>Ratio étiquette / produit : <strong id="ratio">–</strong></div>
     </div>
     <p style="font-size:11px;color:#777;margin-top:10px;">
-      ⚠ Estimation 2D basée sur une photo. La précision dépend de l'angle de prise de vue et de la qualité de la calibration.
+      ⚠ Estimation 2D basée sur une photo. Le ratio est fiable si les deux contours sont tracés sur la même image, avec le produit vu bien de face.
     </p>
   </div>
 
 </div>
+
+<script>
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const imageInput = document.getElementById('imageInput');
+const modeProductBtn = document.getElementById('modeProductBtn');
+const modeLabelBtn = document.getElementById('modeLabelBtn');
+const undoBtn = document.getElementById('undoBtn');
+const clearBtn = document.getElementById('clearBtn');
+
+let img = new Image();
+let imgLoaded = false;
+
+let mode = 'product'; // 'product' or 'label'
+let productPoints = [];
+let labelPoints = [];
+let productClosed = false;
+let labelClosed = false;
+
+function setMode(m) {
+  mode = m;
+  modeProductBtn.classList.toggle('active', m === 'product');
+  modeLabelBtn.classList.toggle('active', m === 'label');
+}
+setMode('product');
+
+imageInput.addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader(); // lecture 100% locale, aucun envoi réseau
+  reader.onload = (ev) => {
+    img.onload = () => {
+      const maxWidth = 800;
+      const scale = Math.min(1, maxWidth / img.width);
+      canvas.width = img.width * scale;
+      canvas.height = img.height * scale;
+      imgLoaded = true;
+      productPoints = [];
+      labelPoints = [];
+      productClosed = false;
+      labelClosed = false;
+      draw();
+      updateResults();
+    };
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+});
+
+modeProductBtn.addEventListener('click', () => setMode('product'));
+modeLabelBtn.addEventListener('click', () => setMode('label'));
+
+undoBtn.addEventListener('click', () => {
+  if (mode === 'product' && productPoints.length > 0) {
+    productPoints.pop();
+    productClosed = false;
+  } else if (mode === 'label' && labelPoints.length > 0) {
+    labelPoints.pop();
+    labelClosed = false;
+  }
+  draw();
+  updateResults();
+});
+
+clearBtn.addEventListener('click', () => {
+  productPoints = [];
+  labelPoints = [];
+  productClosed = false;
+  labelClosed = false;
+  draw();
+  updateResults();
+});
+
+canvas.addEventListener('click', (e) => {
+  if (!imgLoaded) return;
+  const rect = canvas.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+
+  const points = mode === 'product' ? productPoints : labelPoints;
+  const isClosed = mode === 'product' ? productClosed : labelClosed;
+  if (isClosed) return;
+
+  if (points.length >= 3) {
+    const first = points[0];
+    const dist = Math.hypot(x - first.x, y - first.y);
+    if (dist < 12) {
+      if (mode === 'product') productClosed = true; else labelClosed = true;
+      draw();
+      updateResults();
+      return;
+    }
+  }
+  points.push({x, y});
+  draw();
+  updateResults();
+});
+
+function drawPolygon(points, closed, strokeColor, fillColor) {
+  if (points.length === 0) return;
+  ctx.strokeStyle = strokeColor;
+  ctx.fillStyle = fillColor;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, points[0].y);
+  for (let i = 1; i < points.length; i++) ctx.lineTo(points[i].x, points[i].y);
+  if (closed) ctx.closePath();
+  ctx.stroke();
+  if (closed) ctx.fill();
+  points.forEach((p, i) => {
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+    ctx.fillStyle = i === 0 ? strokeColor : strokeColor;
+    ctx.fill();
+  });
+}
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  if (imgLoaded) ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+  drawPolygon(productPoints, productClosed, '#4A74F3', 'rgba(74,116,243,0.20)');
+  drawPolygon(labelPoints, labelClosed, '#9D5CE6', 'rgba(157,92,230,0.35)');
+}
+
+function polygonArea(points) {
+  let area = 0;
+  const n = points.length;
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n;
+    area += points[i].x * points[j].y;
+    area -= points[j].x * points[i].y;
+  }
+  return Math.abs(area / 2);
+}
+
+function updateResults() {
+  const areaProductPx = (productClosed && productPoints.length >= 3) ? polygonArea(productPoints) : null;
+  const areaLabelPx = (labelClosed && labelPoints.length >= 3) ? polygonArea(labelPoints) : null;
+
+  document.getElementById('areaProduct').textContent = areaProductPx ? areaProductPx.toFixed(0) + ' px²' : '–';
+  document.getElementById('areaLabel').textContent = areaLabelPx ? areaLabelPx.toFixed(0) + ' px²' : '–';
+
+  if (areaProductPx && areaLabelPx) {
+    const ratio = (areaLabelPx / areaProductPx) * 100;
+    document.getElementById('ratio').textContent = ratio.toFixed(1) + ' %';
+  } else {
+    document.getElementById('ratio').textContent = '–';
+  }
+}
+</script>
 
 </body>
 </html>
