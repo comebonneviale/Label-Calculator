@@ -25,6 +25,7 @@
   .result-box { background: #f0f2fc; border-radius: 8px; padding: 14px; margin-top: 12px; font-size: 17px; }
   .result-box div { margin-bottom: 6px; }
   .result-box strong { color: #2649B2; font-size: 19px; }
+  .detail-line { font-size: 14px; color: #444; margin-bottom: 3px; }
   .step { font-size: 15px; line-height: 1.5; margin-bottom: 10px; }
   .step b { color: #2649B2; }
   hr { border: none; border-top: 1px solid #eee; margin: 14px 0; }
@@ -76,6 +77,11 @@
     <hr>
 
     <div class="result-box" id="resultBox">
+      <div class="detail-line" id="productDetail">Pack — Polygone 1 : – | Polygone 2 : –</div>
+      <div class="detail-line" id="productTotal">Pack — Total : –</div>
+      <div class="detail-line" id="labelDetail">Étiquette — Polygone 1 : – | Polygone 2 : –</div>
+      <div class="detail-line" id="labelTotal">Étiquette — Total : –</div>
+      <hr>
       <div>Ratio étiquette / produit : <strong id="ratio">–</strong></div>
     </div>
 
@@ -111,15 +117,20 @@ let img = new Image();
 let imgLoaded = false;
 
 let mode = 'product';
-let productPoints = [];
-let labelPoints = [];
-let productClosed = false;
-let labelClosed = false;
+
+// Polygones déjà fermés (max 2 par catégorie)
+let productPolygons = [];
+let labelPolygons = [];
+
+// Points du polygone en cours de tracé (pas encore fermé)
+let currentPoints = [];
 
 function setMode(m) {
   mode = m;
+  currentPoints = []; // on repart sur un tracé propre en changeant de mode
   modeProductBtn.classList.toggle('active', m === 'product');
   modeLabelBtn.classList.toggle('active', m === 'label');
+  draw();
 }
 setMode('product');
 
@@ -134,10 +145,9 @@ imageInput.addEventListener('change', (e) => {
       canvas.width = img.width * scale;
       canvas.height = img.height * scale;
       imgLoaded = true;
-      productPoints = [];
-      labelPoints = [];
-      productClosed = false;
-      labelClosed = false;
+      productPolygons = [];
+      labelPolygons = [];
+      currentPoints = [];
       draw();
       updateResults();
     };
@@ -150,22 +160,24 @@ modeProductBtn.addEventListener('click', () => setMode('product'));
 modeLabelBtn.addEventListener('click', () => setMode('label'));
 
 undoBtn.addEventListener('click', () => {
-  if (mode === 'product' && productPoints.length > 0) {
-    productPoints.pop();
-    productClosed = false;
-  } else if (mode === 'label' && labelPoints.length > 0) {
-    labelPoints.pop();
-    labelClosed = false;
+  if (currentPoints.length > 0) {
+    // on annule le dernier point en cours de tracé
+    currentPoints.pop();
+  } else {
+    // sinon on rouvre le dernier polygone fermé de la catégorie active
+    const polygons = mode === 'product' ? productPolygons : labelPolygons;
+    if (polygons.length > 0) {
+      currentPoints = polygons.pop();
+    }
   }
   draw();
   updateResults();
 });
 
 clearBtn.addEventListener('click', () => {
-  productPoints = [];
-  labelPoints = [];
-  productClosed = false;
-  labelClosed = false;
+  productPolygons = [];
+  labelPolygons = [];
+  currentPoints = [];
   draw();
   updateResults();
 });
@@ -176,21 +188,26 @@ canvas.addEventListener('click', (e) => {
   const x = e.clientX - rect.left;
   const y = e.clientY - rect.top;
 
-  const points = mode === 'product' ? productPoints : labelPoints;
-  const isClosed = mode === 'product' ? productClosed : labelClosed;
-  if (isClosed) return;
+  const polygons = mode === 'product' ? productPolygons : labelPolygons;
 
-  if (points.length >= 3) {
-    const first = points[0];
+  // Maximum 2 polygones par catégorie
+  if (polygons.length >= 2 && currentPoints.length === 0) {
+    return; // on ignore les clics si déjà 2 polygones fermés et aucun tracé en cours
+  }
+
+  if (currentPoints.length >= 3) {
+    const first = currentPoints[0];
     const dist = Math.hypot(x - first.x, y - first.y);
     if (dist < 12) {
-      if (mode === 'product') productClosed = true; else labelClosed = true;
+      // fermeture du polygone en cours : on l'ajoute à la liste, on repart à zéro pour un éventuel 2e polygone
+      polygons.push(currentPoints);
+      currentPoints = [];
       draw();
       updateResults();
       return;
     }
   }
-  points.push({x, y});
+  currentPoints.push({x, y});
   draw();
   updateResults();
 });
@@ -206,10 +223,10 @@ function drawPolygon(points, closed, strokeColor, fillColor) {
   if (closed) ctx.closePath();
   ctx.stroke();
   if (closed) ctx.fill();
-  points.forEach((p, i) => {
+  points.forEach((p) => {
     ctx.beginPath();
     ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
-    ctx.fillStyle = i === 0 ? strokeColor : strokeColor;
+    ctx.fillStyle = strokeColor;
     ctx.fill();
   });
 }
@@ -217,8 +234,17 @@ function drawPolygon(points, closed, strokeColor, fillColor) {
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   if (imgLoaded) ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-  drawPolygon(productPoints, productClosed, '#4A74F3', 'rgba(74,116,243,0.30)');
-  drawPolygon(labelPoints, labelClosed, '#2ecc71', 'rgba(46,204,113,0.40)');
+
+  // polygones fermés du pack
+  productPolygons.forEach(poly => drawPolygon(poly, true, '#4A74F3', 'rgba(74,116,243,0.30)'));
+  // polygones fermés de l'étiquette
+  labelPolygons.forEach(poly => drawPolygon(poly, true, '#2ecc71', 'rgba(46,204,113,0.40)'));
+
+  // polygone en cours de tracé (pas encore fermé)
+  if (currentPoints.length > 0) {
+    const color = mode === 'product' ? '#4A74F3' : '#2ecc71';
+    drawPolygon(currentPoints, false, color, 'transparent');
+  }
 }
 
 function polygonArea(points) {
@@ -233,11 +259,24 @@ function polygonArea(points) {
 }
 
 function updateResults() {
-  const areaProductPx = (productClosed && productPoints.length >= 3) ? polygonArea(productPoints) : null;
-  const areaLabelPx = (labelClosed && labelPoints.length >= 3) ? polygonArea(labelPoints) : null;
+  const productAreas = productPolygons.map(polygonArea);
+  const labelAreas = labelPolygons.map(polygonArea);
 
-  if (areaProductPx && areaLabelPx) {
-    const ratio = (areaLabelPx / areaProductPx) * 100;
+  const productTotal = productAreas.reduce((a, b) => a + b, 0);
+  const labelTotal = labelAreas.reduce((a, b) => a + b, 0);
+
+  const p1 = productAreas[0] ? productAreas[0].toFixed(0) + ' px²' : '–';
+  const p2 = productAreas[1] ? productAreas[1].toFixed(0) + ' px²' : '–';
+  const l1 = labelAreas[0] ? labelAreas[0].toFixed(0) + ' px²' : '–';
+  const l2 = labelAreas[1] ? labelAreas[1].toFixed(0) + ' px²' : '–';
+
+  document.getElementById('productDetail').textContent = `Pack — Polygone 1 : ${p1} | Polygone 2 : ${p2}`;
+  document.getElementById('productTotal').textContent = `Pack — Total : ${productTotal ? productTotal.toFixed(0) + ' px²' : '–'}`;
+  document.getElementById('labelDetail').textContent = `Étiquette — Polygone 1 : ${l1} | Polygone 2 : ${l2}`;
+  document.getElementById('labelTotal').textContent = `Étiquette — Total : ${labelTotal ? labelTotal.toFixed(0) + ' px²' : '–'}`;
+
+  if (productTotal > 0 && labelTotal > 0) {
+    const ratio = (labelTotal / productTotal) * 100;
     document.getElementById('ratio').textContent = ratio.toFixed(1) + ' %';
   } else {
     document.getElementById('ratio').textContent = '–';
